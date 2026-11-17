@@ -23,7 +23,7 @@ Mesmo com serviços públicos de coleta e pontos de entrega, encontrar informaç
 
 **Pergunta de pesquisa**
 
-> É possível prever a quantidade de solicitações de remoção de grandes objetos por subprefeitura e mês, utilizando o histórico público do SP156?
+> É possível prever a quantidade de solicitações de remoção de grandes objetos por distrito e mês, utilizando o histórico público do SP156?
 
 A tarefa é formulada como regressão: estimar o volume mensal de solicitações registradas por região.
 
@@ -31,16 +31,16 @@ A tarefa é formulada como regressão: estimar o volume mensal de solicitações
 
 - Fonte: [Dados do SP156 — Portal de Dados Abertos da Prefeitura de São Paulo](https://dados.prefeitura.sp.gov.br/dataset/dados-do-sp156).
 - Recorte: solicitações relacionadas à remoção de grandes objetos.
-- Unidade de análise: subprefeitura × mês.
+- Unidade de análise nesta execução: distrito × mês (campo geográfico disponível na extração).
 - Alvo: quantidade de solicitações registradas no mês.
 
 > **Limitação importante:** solicitações registradas não equivalem a todos os descartes irregulares que ocorrem na cidade. O modelo estima demanda registrada no SP156, não a ocorrência real de descarte em cada rua.
 
 ### Modelos e avaliação
 
-O notebook compara uma linha de base (valor do mês anterior) com **Random Forest** e **XGBoost**, testando diferentes hiperparâmetros. A avaliação utiliza divisão temporal entre treino e teste e as métricas MAE, RMSE e R².
+O notebook compara uma linha de base (valor do mês anterior) com **Random Forest** e **XGBoost**, testando diferentes hiperparâmetros. A execução enviada registrou MAE, RMSE e R²; consulte o relatório para os valores e as ressalvas metodológicas. A seleção atual de hiperparâmetros consultou o conjunto de teste, portanto os números são exploratórios e exigem uma nova execução com validação temporal independente.
 
-As métricas devem ser preenchidas após executar o notebook com a extração oficial. Nenhum resultado é antecipado neste README.
+Atenção: antes de considerar os resultados definitivos, é necessário conferir a interpretação das datas do CSV (os exemplos parecem estar em mês/dia/ano) e corrigir a conversão no notebook. O relatório descreve os resultados registrados e essas limitações.
 
 ## Estrutura
 
@@ -76,8 +76,9 @@ descarte-facil/
 
 - O SP156 representa solicitações registradas e está sujeito à subnotificação.
 - Mais de uma solicitação pode se referir a um mesmo problema.
+- A coluna geográfica utilizada nesta execução é Distrito, não Subprefeitura.
 - Mudanças na classificação dos serviços podem afetar a série histórica.
-- A agregação por subprefeitura não permite afirmar a demanda exata de uma rua ou CEP.
+- A agregação por distrito não permite afirmar a demanda exata de uma rua ou CEP.
 - Previsões não substituem o calendário oficial nem confirmam atendimento.
 
 ## Impacto esperado
