@@ -16,46 +16,28 @@ A extração carregada pelo notebook contém **484.232 registros e 15 colunas**.
 
 O filtro selecionou solicitações cujo serviço contém termos relacionados a “entulho e grandes objetos”. Os registros foram agregados por distrito e mês, e meses sem registros observados foram preenchidos com zero. Foram criadas variáveis de calendário (ano, mês e trimestre), defasagens de 1, 2 e 3 meses e média móvel dos dois meses anteriores.
 
-**Atenção à data:** os exemplos exibidos no CSV incluem valores como `07/01/2026` e `07/25/2026`, compatíveis com o formato mês/dia/ano. O notebook atualmente utiliza `dayfirst=True` na conversão. Antes de tratar as métricas como definitivas, é necessário corrigir a leitura para o formato confirmado no arquivo (provavelmente `format="%m/%d/%Y"` ou `dayfirst=False`) e conferir o intervalo mínimo e máximo após a conversão. Uma interpretação incorreta das datas pode alterar a agregação mensal e os resultados.
-
-## 3. Modelagem e resultados registrados
+**Tratamento da data:** a coluna `Data de Abertura` foi conferida no CSV. Valores como `07/25/2026` confirmam o padrão mês/dia/ano (MM/DD/YYYY), pois 25 não pode ser um mês. O notebook foi corrigido para interpretar explicitamente esse formato e interromper a execução se menos de 95% das datas forem reconhecidas.
 
 O notebook compara três abordagens:
 - **Baseline:** utiliza a quantidade do mês anterior como previsão;
 - **Random Forest Regressor:** testa diferentes números de árvores, profundidades e tamanhos mínimos de folha;
 - **XGBoost Regressor:** testa diferentes números de estimadores, profundidades e taxas de aprendizado.
 
-A divisão registrada é cronológica, com corte em novembro de 2026: 672 observações no treino e 192 no teste. As métricas registradas no notebook são:
+A avaliação foi corrigida para separar os meses cronologicamente em treino, validação e teste. Os hiperparâmetros são escolhidos exclusivamente na validação; em seguida, cada modelo é reajustado com treino + validação e avaliado uma única vez no teste.
 
-| Modelo | MAE | RMSE | R² |
-|---|---:|---:|---:|
-| Random Forest | **3,873** | 6,608 | 0,605 |
-| XGBoost | 4,070 | **6,496** | **0,618** |
-| Baseline (mês anterior) | 4,813 | 8,645 | 0,323 |
+**Os resultados numéricos anteriores foram retirados desta versão do relatório:** eles vieram de uma execução com interpretação de datas incorreta e seleção de hiperparâmetros diretamente no teste, portanto não são comparáveis nem devem ser apresentados como desempenho do pipeline corrigido. O notebook foi atualizado e teve as saídas antigas removidas. É necessário executar todas as células novamente para gerar métricas válidas; depois disso, a tabela final e a interpretação devem ser inseridas aqui.
 
-O Random Forest obteve o menor MAE, com erro absoluto médio de aproximadamente **3,87 solicitações por distrito/mês**. O XGBoost apresentou o menor RMSE e o maior R². Ambos tiveram métricas melhores que a linha de base nesta execução.
-
-### Ressalva metodológica importante
-
-Na versão executada do notebook, os hiperparâmetros foram escolhidos comparando o MAE diretamente no conjunto de teste. Isso significa que o teste foi consultado durante a seleção dos modelos e deixou de ser uma avaliação final totalmente independente. Assim, os números acima devem ser apresentados como **resultados exploratórios desta execução**, não como uma estimativa imparcial de desempenho futuro. Para uma avaliação final mais robusta, a seleção de hiperparâmetros deve ocorrer em uma validação temporal interna ao treino, mantendo os meses finais intocados até a avaliação final.
-
-Além disso, a extração cobre um intervalo curto e a conversão de datas precisa ser validada. Essas limitações podem afetar a estabilidade das métricas.
-
-## 4. Conclusão e impacto para o cidadão
-
-Nesta execução exploratória, Random Forest e XGBoost superaram a previsão simples baseada no mês anterior. O Random Forest foi o melhor segundo o MAE, enquanto o XGBoost apresentou RMSE ligeiramente menor e R² maior. Isso sugere que os atributos temporais e regionais podem conter informação útil para estimar a demanda registrada no SP156.
+O experimento foi estruturado para comparar Random Forest e XGBoost com uma linha de base simples, utilizando avaliação temporal sem consultar o teste durante a seleção de hiperparâmetros. A conclusão sobre qual modelo é superior só deve ser feita após executar novamente o notebook corrigido e analisar as métricas finais.
 
 No contexto do Descarte Fácil, uma previsão validada pode apoiar campanhas de orientação e planejamento em distritos com maior volume esperado de solicitações. A aplicação deve apresentar estimativas como indicadores de contexto, sem substituir o calendário oficial do Cata-Bagulho ou prometer que uma coleta ocorrerá em determinada data.
 
 As principais limitações são a subnotificação, a possibilidade de múltiplas solicitações para um mesmo problema, alterações de nomenclatura dos serviços, o período histórico curto e a granularidade por distrito. Os resultados não representam todos os descartes irregulares e não devem ser interpretados como previsão individual por CEP ou endereço.
 
-## 5. Próximas etapas para consolidar a entrega
-
-1. Corrigir e validar a interpretação das datas no notebook.
-2. Confirmar que o período mensal e a quantidade de registros por mês correspondem ao arquivo oficial.
-3. Ajustar a seleção de hiperparâmetros usando validação temporal dentro do treino, sem consultar o teste.
-4. Executar novamente o notebook e substituir a tabela exploratória pelos resultados da avaliação final.
-5. Manter a nomenclatura **distrito** no relatório, pois esse é o campo geográfico usado na execução atual.
+1. Executar todas as células do notebook atualizado, de cima para baixo.
+2. Conferir o período mensal, a distribuição das solicitações e os tamanhos dos conjuntos de treino, validação e teste.
+3. Registrar no relatório as métricas da avaliação final (MAE, RMSE e R²) e comparar os modelos com a linha de base.
+4. Interpretar os resultados considerando que o histórico disponível é curto.
+5. Manter a nomenclatura **distrito**, pois esse é o campo geográfico usado na análise.
 
 ## Reprodutibilidade
 
