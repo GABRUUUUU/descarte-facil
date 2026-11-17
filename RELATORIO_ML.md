@@ -2,62 +2,61 @@
 
 ## 1. Problema e objetivo
 
-O Descarte Fácil é uma proposta CitizenTech para simplificar o descarte correto de móveis, eletrodomésticos e outros objetos volumosos em São Paulo. O aplicativo pretende informar o calendário do Cata-Bagulho, orientar sobre a destinação correta e incentivar a doação de itens reutilizáveis.
+O Descarte Fácil é uma proposta CitizenTech para simplificar o descarte correto de móveis, eletrodomésticos e outros objetos volumosos em São Paulo. A solução pretende informar o calendário do Cata-Bagulho, orientar sobre a destinação correta e incentivar a doação de itens reutilizáveis.
 
-A pergunta de Machine Learning é: **é possível prever a quantidade de solicitações de remoção de grandes objetos por subprefeitura e mês, utilizando o histórico público do SP156?**
+A pergunta investigada é: **é possível estimar a quantidade de solicitações de remoção de grandes objetos por região e mês, utilizando o histórico público do SP156?**
 
 O problema é tratado como regressão. A previsão de demanda registrada pode ajudar a reconhecer regiões e períodos que merecem maior atenção em ações de comunicação e planejamento. O modelo não prevê o dia exato de coleta de uma rua nem mede diretamente todo o descarte irregular.
 
 ## 2. Dados e preparação
 
-A fonte selecionada é a base **Dados do SP156**, publicada no Portal de Dados Abertos da Prefeitura de São Paulo: https://dados.prefeitura.sp.gov.br/dataset/dados-do-sp156.
+A fonte utilizada foi a base **Dados do SP156**, publicada no Portal de Dados Abertos da Prefeitura de São Paulo: https://dados.prefeitura.sp.gov.br/dataset/dados-do-sp156.
 
-O conjunto reúne solicitações registradas pelos canais SP156. Para este estudo, devem ser selecionados os registros cujo serviço/assunto corresponda à remoção de grandes objetos. A extração utilizada, a data de download e a versão do dicionário de dados devem ser anotadas durante a execução.
+A extração carregada pelo notebook contém **484.232 registros e 15 colunas**. O campo geográfico reconhecido no arquivo foi **Distrito**. Portanto, a unidade efetivamente utilizada no experimento foi **distrito-mês**, e não subprefeitura-mês. Essa distinção é importante: o relatório e a interpretação dos resultados devem manter a granularidade realmente presente nos dados.
 
-A preparação consiste em:
-1. carregar o arquivo CSV oficial;
-2. conferir e padronizar os campos de data, serviço/assunto e subprefeitura;
-3. filtrar o serviço de remoção de grandes objetos;
-4. agregar as solicitações por subprefeitura e mês;
-5. construir atributos temporais e históricos.
+O filtro selecionou solicitações cujo serviço contém termos relacionados a “entulho e grandes objetos”. Os registros foram agregados por distrito e mês, e meses sem registros observados foram preenchidos com zero. Foram criadas variáveis de calendário (ano, mês e trimestre), defasagens de 1, 2 e 3 meses e média móvel dos dois meses anteriores.
 
-A unidade de análise é **subprefeitura-mês** e a variável-alvo é a contagem mensal de solicitações. Entre os atributos explicativos estão mês, trimestre, ano, valores defasados (1, 2, 3, 6 e 12 meses) e média móvel dos três meses anteriores.
+**Atenção à data:** os exemplos exibidos no CSV incluem valores como `07/01/2026` e `07/25/2026`, compatíveis com o formato mês/dia/ano. O notebook atualmente utiliza `dayfirst=True` na conversão. Antes de tratar as métricas como definitivas, é necessário corrigir a leitura para o formato confirmado no arquivo (provavelmente `format="%m/%d/%Y"` ou `dayfirst=False`) e conferir o intervalo mínimo e máximo após a conversão. Uma interpretação incorreta das datas pode alterar a agregação mensal e os resultados.
 
-## 3. Modelagem e avaliação
+## 3. Modelagem e resultados registrados
 
 O notebook compara três abordagens:
 - **Baseline:** utiliza a quantidade do mês anterior como previsão;
-- **Random Forest Regressor:** testa combinações de número de árvores, profundidade e tamanho mínimo das folhas;
-- **XGBoost Regressor:** testa combinações de número de estimadores, profundidade e taxa de aprendizado.
+- **Random Forest Regressor:** testa diferentes números de árvores, profundidades e tamanhos mínimos de folha;
+- **XGBoost Regressor:** testa diferentes números de estimadores, profundidades e taxas de aprendizado.
 
-A divisão entre treino e teste é cronológica: os períodos mais antigos são utilizados no treinamento e os meses finais são reservados para teste. Essa estratégia é mais adequada a uma previsão temporal do que embaralhar aleatoriamente os registros.
+A divisão registrada é cronológica, com corte em novembro de 2026: 672 observações no treino e 192 no teste. As métricas registradas no notebook são:
 
-As métricas são MAE (erro absoluto médio), RMSE (raiz do erro quadrático médio) e R². O MAE informa, em média, quantas solicitações separam a previsão do valor observado. O RMSE penaliza mais os erros grandes. O R² resume quanto da variação observada é explicada pelo modelo.
+| Modelo | MAE | RMSE | R² |
+|---|---:|---:|---:|
+| Random Forest | **3,873** | 6,608 | 0,605 |
+| XGBoost | 4,070 | **6,496** | **0,618** |
+| Baseline (mês anterior) | 4,813 | 8,645 | 0,323 |
 
-### Resultados experimentais
+O Random Forest obteve o menor MAE, com erro absoluto médio de aproximadamente **3,87 solicitações por distrito/mês**. O XGBoost apresentou o menor RMSE e o maior R². Ambos tiveram métricas melhores que a linha de base nesta execução.
 
-> **Preencher somente após executar o notebook com a base oficial. Não inserir métricas estimadas ou fictícias.**
+### Ressalva metodológica importante
 
-| Modelo | MAE | RMSE | R² | Hiperparâmetros |
-|---|---:|---:|---:|---|
-| Baseline (mês anterior) | A preencher | A preencher | A preencher | — |
-| Random Forest | A preencher | A preencher | A preencher | A preencher |
-| XGBoost | A preencher | A preencher | A preencher | A preencher |
+Na versão executada do notebook, os hiperparâmetros foram escolhidos comparando o MAE diretamente no conjunto de teste. Isso significa que o teste foi consultado durante a seleção dos modelos e deixou de ser uma avaliação final totalmente independente. Assim, os números acima devem ser apresentados como **resultados exploratórios desta execução**, não como uma estimativa imparcial de desempenho futuro. Para uma avaliação final mais robusta, a seleção de hiperparâmetros deve ocorrer em uma validação temporal interna ao treino, mantendo os meses finais intocados até a avaliação final.
 
-**Modelo selecionado:** a preencher.
-
-**Interpretação dos resultados:** informar se os modelos superaram a linha de base, qual apresentou menor MAE no teste e quais atributos tiveram maior importância. Analisar também o gráfico de valores reais versus previstos e eventuais erros elevados em regiões específicas.
+Além disso, a extração cobre um intervalo curto e a conversão de datas precisa ser validada. Essas limitações podem afetar a estabilidade das métricas.
 
 ## 4. Conclusão e impacto para o cidadão
 
-Caso o modelo apresente desempenho superior à linha de base no período de teste, isso será um indício de que o histórico do SP156 contém padrões temporais e regionais úteis para estimar a demanda futura por remoção de grandes objetos.
+Nesta execução exploratória, Random Forest e XGBoost superaram a previsão simples baseada no mês anterior. O Random Forest foi o melhor segundo o MAE, enquanto o XGBoost apresentou RMSE ligeiramente menor e R² maior. Isso sugere que os atributos temporais e regionais podem conter informação útil para estimar a demanda registrada no SP156.
 
-No contexto do Descarte Fácil, essa informação pode apoiar campanhas de orientação e priorização de comunicação em regiões com maior demanda registrada. A aplicação deve apresentar essas estimativas como indicadores de contexto, sem substituir o calendário oficial do Cata-Bagulho ou prometer que uma coleta ocorrerá em determinada data.
+No contexto do Descarte Fácil, uma previsão validada pode apoiar campanhas de orientação e planejamento em distritos com maior volume esperado de solicitações. A aplicação deve apresentar estimativas como indicadores de contexto, sem substituir o calendário oficial do Cata-Bagulho ou prometer que uma coleta ocorrerá em determinada data.
 
-As principais limitações são a subnotificação, a possibilidade de múltiplas solicitações para um mesmo problema, alterações de nomenclatura dos serviços e a granularidade por subprefeitura. Por isso, os resultados não devem ser interpretados como contagem de todos os descartes irregulares nem como previsão individual por CEP ou endereço.
+As principais limitações são a subnotificação, a possibilidade de múltiplas solicitações para um mesmo problema, alterações de nomenclatura dos serviços, o período histórico curto e a granularidade por distrito. Os resultados não representam todos os descartes irregulares e não devem ser interpretados como previsão individual por CEP ou endereço.
 
-Uma evolução possível é combinar o histórico do SP156 com calendário oficial do Cata-Bagulho, dados georreferenciados de pontos viciados e indicadores territoriais do IBGE. Isso permitiria análises mais granulares e uma integração mais direta com as funcionalidades do aplicativo.
+## 5. Próximas etapas para consolidar a entrega
+
+1. Corrigir e validar a interpretação das datas no notebook.
+2. Confirmar que o período mensal e a quantidade de registros por mês correspondem ao arquivo oficial.
+3. Ajustar a seleção de hiperparâmetros usando validação temporal dentro do treino, sem consultar o teste.
+4. Executar novamente o notebook e substituir a tabela exploratória pelos resultados da avaliação final.
+5. Manter a nomenclatura **distrito** no relatório, pois esse é o campo geográfico usado na execução atual.
 
 ## Reprodutibilidade
 
-O notebook em `ml/descarte_facil_ml.ipynb` documenta o carregamento, a preparação, o treinamento e a avaliação. Para concluir a entrega, execute todas as células, registre a origem e a data da extração, confira os campos com o dicionário oficial e transcreva os resultados reais nesta seção.
+O notebook executado está em `ml/descarte_facil_ml.ipynb`. A fonte oficial e o código de preparação, treinamento e avaliação estão documentados nele. Registre a data de download e a versão do arquivo SP156 utilizado para facilitar a reprodução do experimento.
