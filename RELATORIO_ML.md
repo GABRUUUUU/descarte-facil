@@ -4,41 +4,59 @@
 
 O Descarte Fácil é uma proposta CitizenTech para simplificar o descarte correto de móveis, eletrodomésticos e outros objetos volumosos em São Paulo. A solução pretende informar o calendário do Cata-Bagulho, orientar sobre a destinação correta e incentivar a doação de itens reutilizáveis.
 
-A pergunta investigada é: **é possível estimar a quantidade de solicitações de remoção de grandes objetos por região e mês, utilizando o histórico público do SP156?**
+A pergunta investigada é: **é possível estimar a quantidade de solicitações de remoção de grandes objetos por distrito e mês, utilizando o histórico público do SP156?**
 
-O problema é tratado como regressão. A previsão de demanda registrada pode ajudar a reconhecer regiões e períodos que merecem maior atenção em ações de comunicação e planejamento. O modelo não prevê o dia exato de coleta de uma rua nem mede diretamente todo o descarte irregular.
+O problema é tratado como regressão. A previsão de demanda registrada pode ajudar a reconhecer regiões e períodos que merecem maior atenção em ações de comunicação e planejamento. O modelo não prevê o dia exato de coleta de uma rua nem mede diretamente a quantidade real de descarte irregular.
 
 ## 2. Dados e preparação
 
-A fonte utilizada foi a base **Dados do SP156**, publicada no Portal de Dados Abertos da Prefeitura de São Paulo: https://dados.prefeitura.sp.gov.br/dataset/dados-do-sp156.
+A fonte é a base **Dados do SP156**, publicada no Portal de Dados Abertos da Prefeitura de São Paulo: https://dados.prefeitura.sp.gov.br/dataset/dados-do-sp156.
 
-A extração carregada pelo notebook contém **484.232 registros e 15 colunas**. O campo geográfico reconhecido no arquivo foi **Distrito**. Portanto, a unidade efetivamente utilizada no experimento foi **distrito-mês**, e não subprefeitura-mês. Essa distinção é importante: o relatório e a interpretação dos resultados devem manter a granularidade realmente presente nos dados.
+O portal informa que as solicitações disponíveis abrangem o período de 1º de janeiro de 2012 a 30 de setembro de 2026 e são publicadas em arquivos trimestrais. Para este experimento, o notebook foi preparado para combinar oito arquivos trimestrais consecutivos, do 4º trimestre de 2024 ao 3º trimestre de 2026. Isso amplia o histórico em relação à primeira versão, que utilizava apenas o 3º trimestre de 2026.
 
-O filtro selecionou solicitações cujo serviço contém termos relacionados a “entulho e grandes objetos”. Os registros foram agregados por distrito e mês, e meses sem registros observados foram preenchidos com zero. Foram criadas variáveis de calendário (ano, mês e trimestre), defasagens de 1, 2 e 3 meses e média móvel dos dois meses anteriores.
+A execução verifica se todos os oito arquivos foram carregados. Se algum trimestre falhar, o notebook interrompe o processamento para evitar que um período sem arquivo seja confundido com um mês sem solicitações. O número final de registros e a cobertura temporal efetiva devem ser anotados após a execução.
 
-**Tratamento da data:** a coluna `Data de Abertura` foi conferida no CSV. Valores como `07/25/2026` confirmam o padrão mês/dia/ano (MM/DD/YYYY), pois 25 não pode ser um mês. O notebook foi corrigido para interpretar explicitamente esse formato e interromper a execução se menos de 95% das datas forem reconhecidas.
+O campo geográfico utilizado é **Distrito**. Portanto, a unidade de análise é **distrito-mês**, e não subprefeitura-mês. O filtro seleciona serviços cuja nomenclatura contém termos relacionados a grandes objetos e entulho. A lista de serviços encontrados é exibida no notebook para permitir a conferência do recorte.
+
+As datas são convertidas com validação da proporção de valores reconhecidos. O notebook tenta primeiro o padrão mês/dia/ano, observado nos arquivos recentes, e testa o padrão dia/mês/ano se a taxa de conversão inicial for baixa.
+
+Os dados são agregados por distrito e mês. O painel mensal é balanceado dentro do intervalo carregado, e meses sem solicitações observadas são preenchidos com zero. São criadas variáveis de calendário (ano, mês e trimestre) e defasagens de 1, 2 e 3 meses.
+
+A avaliação é temporal: os seis meses mais recentes são reservados para teste; os seis meses imediatamente anteriores são usados para validação; e os meses anteriores compõem o treino. Os hiperparâmetros são escolhidos somente na validação. Em seguida, os modelos são reajustados com treino e validação e avaliados uma única vez no teste.
+
+## 3. Modelos e avaliação
 
 O notebook compara três abordagens:
-- **Baseline:** utiliza a quantidade do mês anterior como previsão;
-- **Random Forest Regressor:** testa diferentes números de árvores, profundidades e tamanhos mínimos de folha;
+
+- **Baseline lag-1:** utiliza a quantidade do mês anterior como previsão.
+- **Random Forest Regressor:** testa diferentes números de árvores, profundidades e tamanhos mínimos de folha.
 - **XGBoost Regressor:** testa diferentes números de estimadores, profundidades e taxas de aprendizado.
 
-A avaliação foi corrigida para separar os meses cronologicamente em treino, validação e teste. Os hiperparâmetros são escolhidos exclusivamente na validação; em seguida, cada modelo é reajustado com treino + validação e avaliado uma única vez no teste.
+As métricas utilizadas são MAE, RMSE e R². O MAE representa o erro absoluto médio em número de solicitações por distrito-mês. A comparação com o baseline é importante para verificar se os modelos de machine learning realmente acrescentam capacidade preditiva em relação a uma regra simples.
 
-**Os resultados numéricos anteriores foram retirados desta versão do relatório:** eles vieram de uma execução com interpretação de datas incorreta e seleção de hiperparâmetros diretamente no teste, portanto não são comparáveis nem devem ser apresentados como desempenho do pipeline corrigido. O notebook foi atualizado e teve as saídas antigas removidas. É necessário executar todas as células novamente para gerar métricas válidas; depois disso, a tabela final e a interpretação devem ser inseridas aqui.
+**Os resultados numéricos devem ser preenchidos após executar a versão atualizada do notebook.** Não devem ser reutilizadas as métricas da execução anterior: aquela versão utilizava somente três meses, compartilhava o mesmo mês entre treino e validação e não permitia uma avaliação temporal independente.
 
-O experimento foi estruturado para comparar Random Forest e XGBoost com uma linha de base simples, utilizando avaliação temporal sem consultar o teste durante a seleção de hiperparâmetros. A conclusão sobre qual modelo é superior só deve ser feita após executar novamente o notebook corrigido e analisar as métricas finais.
+Após a execução, registrar:
+- quantidade de registros e trimestres efetivamente carregados;
+- período coberto e número de distritos;
+- meses e linhas em treino, validação e teste;
+- MAE, RMSE e R² dos três métodos;
+- melhor conjunto de hiperparâmetros e atributos mais relevantes.
 
-No contexto do Descarte Fácil, uma previsão validada pode apoiar campanhas de orientação e planejamento em distritos com maior volume esperado de solicitações. A aplicação deve apresentar estimativas como indicadores de contexto, sem substituir o calendário oficial do Cata-Bagulho ou prometer que uma coleta ocorrerá em determinada data.
+## 4. Aplicação no Descarte Fácil
 
-As principais limitações são a subnotificação, a possibilidade de múltiplas solicitações para um mesmo problema, alterações de nomenclatura dos serviços, o período histórico curto e a granularidade por distrito. Os resultados não representam todos os descartes irregulares e não devem ser interpretados como previsão individual por CEP ou endereço.
+Uma previsão validada pode apoiar campanhas de orientação e planejamento em distritos com maior volume esperado de solicitações. No aplicativo, a informação deve ser apresentada como indicador agregado de contexto, sem substituir o calendário oficial do Cata-Bagulho ou prometer que uma coleta ocorrerá em determinada data.
 
-1. Executar todas as células do notebook atualizado, de cima para baixo.
-2. Conferir o período mensal, a distribuição das solicitações e os tamanhos dos conjuntos de treino, validação e teste.
-3. Registrar no relatório as métricas da avaliação final (MAE, RMSE e R²) e comparar os modelos com a linha de base.
-4. Interpretar os resultados considerando que o histórico disponível é curto.
-5. Manter a nomenclatura **distrito**, pois esse é o campo geográfico usado na análise.
+## 5. Limitações
+
+Os dados do SP156 representam solicitações registradas pelos cidadãos, e não todos os descartes irregulares existentes. Uma pessoa pode abrir mais de uma solicitação para um mesmo problema, e a Prefeitura pode executar serviços sem que exista um protocolo correspondente.
+
+A Prefeitura também informa que os serviços podem mudar de nome, ser reclassificados e receber protocolos incluídos em republicações. Essas alterações exigem cuidado ao combinar arquivos de períodos diferentes. O filtro textual de serviços deve ser conferido na saída do notebook.
+
+A análise é feita por distrito, não por CEP ou endereço. Além disso, a avaliação representa uma previsão mensal de um passo à frente, usando os valores observados dos meses anteriores; não equivale a uma previsão de vários meses futuros sem atualização dos dados.
 
 ## Reprodutibilidade
 
-O notebook executado está em `ml/descarte_facil_ml.ipynb`. A fonte oficial e o código de preparação, treinamento e avaliação estão documentados nele. Registre a data de download e a versão do arquivo SP156 utilizado para facilitar a reprodução do experimento.
+O notebook está em `ml/descarte_facil_ml.ipynb`. Ele contém os links dos arquivos trimestrais, a coleta, a preparação, o treinamento e a avaliação. A fonte oficial deve ser consultada novamente caso a Prefeitura atualize os recursos ou altere os endereços dos arquivos.
+
+Execute todas as células de cima para baixo e atualize este relatório com os resultados efetivamente obtidos.
