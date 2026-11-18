@@ -38,9 +38,9 @@ A tarefa é formulada como regressão: estimar o volume mensal de solicitações
 
 ### Modelos e avaliação
 
-O notebook compara uma linha de base (valor do mês anterior) com **Random Forest** e **XGBoost**, testando diferentes hiperparâmetros. O notebook reúne oito arquivos trimestrais consecutivos, do 4º trimestre de 2024 ao 3º trimestre de 2026. A seleção de hiperparâmetros ocorre em uma validação temporal independente, e os seis meses finais ficam reservados para teste. As métricas finais precisam ser geradas executando novamente o notebook.
+O notebook compara uma linha de base (valor do mês anterior) com **Random Forest** e **XGBoost**, testando diferentes hiperparâmetros. O notebook foi atualizado para selecionar hiperparâmetros em uma validação temporal e reservar os meses finais para teste. As métricas finais ainda precisam ser geradas executando novamente o notebook.
 
-A coluna de data foi conferida: valores como `07/25/2026` confirmam o padrão mês/dia/ano (MM/DD/YYYY). O notebook já foi corrigido para interpretar esse formato explicitamente. As saídas antigas foram removidas para evitar que métricas calculadas com a configuração anterior sejam confundidas com os novos resultados. O notebook interrompe a execução se algum dos oito arquivos trimestrais não for carregado, evitando tratar um trimestre ausente como se tivesse zero solicitações.
+A coluna de data foi conferida: valores como `07/25/2026` confirmam o padrão mês/dia/ano (MM/DD/YYYY). O notebook já foi corrigido para interpretar esse formato explicitamente. As saídas antigas foram removidas para evitar que métricas calculadas com a configuração anterior sejam confundidas com os novos resultados.
 
 ## Estrutura
 
@@ -58,12 +58,13 @@ descarte-facil/
 
 ## Como executar
 
-1. Consulte a [página oficial do SP156](https://dados.prefeitura.sp.gov.br/dataset/dados-do-sp156) e o dicionário de dados.
-2. Instale as dependências: `python -m pip install -r requirements.txt`.
-3. Abra `ml/descarte_facil_ml.ipynb` no Jupyter ou Google Colab.
-4. Execute as células em ordem. O notebook baixa os oito CSVs trimestrais configurados automaticamente.
-5. Se algum recurso for atualizado ou removido pela Prefeitura, confira os links na página oficial e atualize a lista `SOURCES` no notebook.
-6. Registre no [relatório](RELATORIO_ML.md) as métricas e a interpretação obtidas no teste.
+1. Baixe a base na [página oficial do SP156](https://dados.prefeitura.sp.gov.br/dataset/dados-do-sp156).
+2. Confira o dicionário e utilize os campos Data de Abertura, Serviço e Distrito presentes na extração atual.
+3. Instale as dependências: `python -m pip install -r requirements.txt`.
+4. Abra `ml/descarte_facil_ml.ipynb` no Jupyter ou Google Colab.
+5. O notebook utiliza o CSV oficial configurado e os campos Data de Abertura, Serviço e Distrito; se a Prefeitura alterar o arquivo, confira os nomes e atualize a URL.
+6. Execute as células em ordem.
+7. Registre no [relatório](RELATORIO_ML.md) as métricas e a interpretação obtidas no teste.
 
 ## Entregáveis
 
