@@ -38,9 +38,9 @@ A tarefa é formulada como regressão: estimar o volume mensal de solicitações
 
 ### Modelos e avaliação
 
-O notebook compara uma linha de base (valor do mês anterior) com **Random Forest** e **XGBoost**, testando diferentes hiperparâmetros. O notebook foi atualizado para selecionar hiperparâmetros em uma validação temporal e reservar os meses finais para teste. As métricas finais ainda precisam ser geradas executando novamente o notebook.
+O notebook compara uma linha de base (valor do mês anterior) com **Random Forest** e **XGBoost**. Como a extração atual cobre somente três meses, a divisão é julho (treino), agosto (validação) e setembro (teste) de 2026, sem sobreposição. Essa avaliação é exploratória e insuficiente para afirmar que o modelo generaliza; o relatório registra essa limitação. Execute o notebook atualizado para gerar as métricas.
 
-A coluna de data foi conferida: valores como `07/25/2026` confirmam o padrão mês/dia/ano (MM/DD/YYYY). O notebook já foi corrigido para interpretar esse formato explicitamente. As saídas antigas foram removidas para evitar que métricas calculadas com a configuração anterior sejam confundidas com os novos resultados.
+A coluna de data foi conferida: valores como `07/25/2026` confirmam o padrão mês/dia/ano (MM/DD/YYYY). O notebook já foi corrigido para interpretar esse formato explicitamente. As saídas anteriores foram removidas para evitar que métricas da divisão inválida sejam confundidas com os novos resultados.
 
 ## Estrutura
 
@@ -64,7 +64,7 @@ descarte-facil/
 4. Abra `ml/descarte_facil_ml.ipynb` no Jupyter ou Google Colab.
 5. O notebook utiliza o CSV oficial configurado e os campos Data de Abertura, Serviço e Distrito; se a Prefeitura alterar o arquivo, confira os nomes e atualize a URL.
 6. Execute as células em ordem.
-7. Registre no [relatório](RELATORIO_ML.md) as métricas e a interpretação obtidas no teste.
+7. Registre no [relatório](RELATORIO_ML.md) as métricas e a interpretação obtidas no teste. A execução atual é exploratória, pois há somente três meses de dados.
 
 ## Entregáveis
 
